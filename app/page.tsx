@@ -18,7 +18,8 @@ import {
   X,
   ImageOff,
   Quote,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 
 // --- Types & Data ---
@@ -75,6 +76,19 @@ const PRODUCTS = [
   }
 ];
 
+const TESTIMONIALS = [
+  { 
+    name: "Mr. Adekunle J.", 
+    role: "CEO, Oil & Gas", 
+    text: "The fit on my wedding suit was flawless. A true investment piece that speaks volumes. The attention to detail is simply unmatched in West Africa." 
+  },
+  { 
+    name: "Dr. Chinedu O.", 
+    role: "Venture Capitalist", 
+    text: "My go-to for business travel. The shoes are comfortable yet undeniably sharp. Stanwells understands the value of time and quality." 
+  }
+];
+
 // --- Components ---
 
 function SafeImage({ src, alt, fill, width, height, className, priority }: any) {
@@ -114,12 +128,68 @@ const useScrollReveal = () => {
   return { ref, isVisible };
 };
 
+function InlineSelect({ options, selected, onSelect }: any) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <span className="relative inline-block" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`px-3 py-1 border-b-2 transition-all duration-300 ${
+          selected ? 'border-accent text-accent' : 'border-white/20 text-white/30 hover:border-white/40'
+        }`}
+      >
+        {selected || "select requirement"}
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-[100] left-0 mt-2 min-w-[260px] bg-secondary border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-scaleIn">
+          {options.map((opt: string) => (
+            <button
+              key={opt}
+              type="button"
+              className="w-full text-left px-6 py-3 text-sm text-white/70 hover:bg-accent hover:text-white transition-colors"
+              onClick={() => {
+                onSelect(opt);
+                setIsOpen(false);
+              }}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // --- Page Content ---
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0);
+  const [selectedInterest, setSelectedInterest] = useState("");
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTestimonialIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -308,19 +378,24 @@ export default function LandingPage() {
             <p className="text-white/50">Voices from our esteemed clientele.</p>
           </div>
 
-          <div className="columns-1 md:columns-2 gap-8 space-y-8">
-            {[
-              { name: "Mr. Adekunle J.", role: "CEO, Oil & Gas", text: "The fit on my wedding suit was flawless. A true investment piece that speaks volumes. The attention to detail is simply unmatched in West Africa." },
-              { name: "Dr. Chinedu O.", role: "Venture Capitalist", text: "My go-to for business travel. The shoes are comfortable yet undeniably sharp. Stanwells understands the value of time and quality." }
-            ].map((t, i) => (
-              <div key={i} className="break-inside-avoid bg-secondary p-10 rounded-3xl border border-white/5 relative group">
-                <Quote size={60} className="absolute -top-4 -right-4 text-white/5 group-hover:text-accent/10 transition-colors" />
-                <p className="text-white/80 text-xl italic font-heading leading-relaxed mb-8 relative z-10">&quot;{t.text}&quot;</p>
-                <div className="flex items-center gap-4 border-t border-white/10 pt-6">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold font-heading">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
+          <div className="relative h-[300px] md:h-[250px] overflow-hidden flex items-center justify-center">
+            {TESTIMONIALS.map((t, i) => (
+              <div 
+                key={i} 
+                className={`absolute inset-0 transition-all duration-1000 ease-in-out flex flex-col items-center justify-center text-center ${
+                  i === activeTestimonialIndex 
+                    ? 'opacity-100 translate-y-0 scale-100' 
+                    : i < activeTestimonialIndex 
+                      ? 'opacity-0 -translate-y-full scale-95' 
+                      : 'opacity-0 translate-y-full scale-95'
+                }`}
+              >
+                <div className="max-w-3xl px-4">
+                  <Quote size={40} className="text-accent/20 mx-auto mb-6" />
+                  <p className="text-white/80 text-xl md:text-2xl italic font-heading leading-relaxed mb-8 relative z-10">
+                    &quot;{t.text}&quot;
+                  </p>
+                  <div className="flex flex-col items-center gap-2">
                     <h4 className="font-bold text-white tracking-tight">{t.name}</h4>
                     <p className="text-accent/60 text-xs uppercase tracking-widest">{t.role}</p>
                   </div>
@@ -328,99 +403,126 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+
+          {/* Indicators */}
+          <div className="flex justify-center gap-2 mt-8">
+            {TESTIMONIALS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTestimonialIndex(i)}
+                className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                  i === activeTestimonialIndex ? 'bg-accent w-8' : 'bg-white/10'
+                }`}
+                aria-label={`Go to testimonial ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Contact Section C2 */}
-      <section id="contact" className="py-24 bg-secondary">
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20">
-          <div>
-            <h2 className="font-heading text-5xl font-bold mb-6">Bespoke Inquiry & Appointment</h2>
-            <p className="text-white/50 text-lg mb-12">
-              Ready for your standard of perfection? Fill out the form below or reach us directly via our luxury concierge.
-            </p>
+      {/* Contact Section V4 - Harmonized Narrative */}
+      <section id="contact" className="py-24 bg-secondary relative">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          {/* Consistent Section Header */}
+          <div className="text-center mb-16">
+            <h2 className="font-heading text-4xl md:text-5xl font-bold mb-4">Secure Your Standard</h2>
+            <p className="text-white/50">Schedule a private session with our master clothiers.</p>
+          </div>
 
-            <div className="space-y-8">
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
-                  <Phone size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white">Call / WhatsApp</h4>
-                  <p className="text-white/50 text-sm mt-1">+234-XXXX-XXXXXX</p>
-                </div>
+          {formSubmitted ? (
+            <div className="bg-white/5 backdrop-blur-xl p-12 md:p-20 rounded-[3rem] border border-white/10 text-center animate-scaleIn max-w-3xl mx-auto shadow-2xl">
+              <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-10 shadow-lg shadow-accent/10">
+                <CheckCircle2 size={48} className="text-accent" />
               </div>
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
-                  <Mail size={24} />
+              <h3 className="font-heading text-4xl md:text-5xl font-bold mb-6 italic">Inquiry Received.</h3>
+              <p className="text-white/50 text-xl leading-relaxed">
+                A Stanwells consultant will review your request and reach out via your preferred channel within 24 hours.
+              </p>
+              <button 
+                onClick={() => {
+                  setFormSubmitted(false);
+                  setSelectedInterest("");
+                }}
+                className="mt-12 text-accent font-bold tracking-[0.2em] uppercase hover:underline flex items-center gap-2 mx-auto"
+              >
+                Draft Another Response <ArrowRight size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="relative max-w-5xl mx-auto group">
+              {/* Sophisticated Container (Digital Parchment) */}
+              <div className="absolute -inset-4 bg-gradient-to-tr from-accent/5 via-transparent to-primary/5 blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+              <div className="relative bg-[#0d1525]/40 backdrop-blur-2xl p-10 md:p-16 lg:p-24 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
+                {/* Decorative Seal/Signature */}
+                <div className="absolute top-8 right-8 w-16 h-16 opacity-10 flex flex-col items-center justify-center border border-accent rounded-full rotate-12">
+                   <span className="text-[6px] font-bold text-accent uppercase tracking-tighter">Approved</span>
+                   <span className="text-[10px] font-bold text-accent tracking-widest leading-none">SS</span>
                 </div>
-                <div>
-                  <h4 className="font-bold text-white">Email Inquiries</h4>
-                  <p className="text-white/50 text-sm mt-1">inquiry@stanwells.ng</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all">
-                  <MapPin size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white">Showroom Address</h4>
-                  <p className="text-white/50 text-sm mt-1">Lekki Phase 1, Lagos, Nigeria</p>
-                </div>
+                
+                <form onSubmit={handleFormSubmit} className="space-y-12">
+                  <div className="font-heading text-2xl md:text-4xl lg:text-5xl text-white/90 font-medium leading-[1.6] md:leading-[1.7] italic">
+                    Greetings. My name is{' '}
+                    <input 
+                      required 
+                      type="text" 
+                      placeholder="your identity" 
+                      className="bg-transparent border-b-2 border-white/10 hover:border-white/30 focus:border-accent text-accent placeholder:text-white/5 outline-none transition-all px-2 w-full max-w-[280px] text-center md:text-left font-bold non-italic"
+                    />
+                    , and I wish to discuss a{' '}
+                    <InlineSelect 
+                      selected={selectedInterest}
+                      onSelect={setSelectedInterest}
+                      options={[
+                        "Bespoke Three-Piece Suit",
+                        "Signature Footwear",
+                        "Wedding Collection",
+                        "Corporate Styling"
+                      ]}
+                    />
+                    . You can reach me via mobile at{' '}
+                    <input 
+                      required 
+                      type="tel" 
+                      placeholder="phone number" 
+                      className="bg-transparent border-b-2 border-white/10 hover:border-white/30 focus:border-accent text-accent placeholder:text-white/5 outline-none transition-all px-2 w-full max-w-[250px] text-center md:text-left font-bold non-italic"
+                    />
+                    {' '}
+                    or email at{' '}
+                    <input 
+                      required 
+                      type="email" 
+                      placeholder="email address" 
+                      className="bg-transparent border-b-2 border-white/10 hover:border-white/30 focus:border-accent text-accent placeholder:text-white/5 outline-none transition-all px-2 w-full max-w-[320px] text-center md:text-left font-bold non-italic"
+                    />
+                    . My primary goal is{' '}
+                    <input 
+                      type="text" 
+                      placeholder="brief requirement..." 
+                      className="bg-transparent border-b-2 border-white/10 hover:border-white/30 focus:border-accent text-accent placeholder:text-white/5 outline-none transition-all px-2 w-full max-w-[380px] text-center md:text-left font-bold non-italic"
+                    />
+                    .
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-12 pt-12 border-t border-white/5">
+                    {/* Social/Trust Anchors */}
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-8 opacity-40 group-hover:opacity-70 transition-opacity">
+                      <div className="flex items-center gap-2">
+                        <Phone size={14} className="text-accent" /> <span className="text-[10px] uppercase tracking-widest font-bold font-mono">+234 81 000 000 00</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail size={14} className="text-accent" /> <span className="text-[10px] uppercase tracking-widest font-bold font-mono">concierge@stanwells.ng</span>
+                      </div>
+                    </div>
+
+                    <button type="submit" className="group flex items-center gap-6 px-10 py-5 bg-white text-black font-bold rounded-2xl hover:bg-accent hover:text-white transition-all duration-500 shadow-xl hover:shadow-accent/20">
+                      <span className="text-xs uppercase tracking-[0.3em]">Transmit Inquiry</span>
+                      <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white/5 p-8 md:p-12 rounded-3xl border border-white/10 relative">
-            {formSubmitted ? (
-              <div className="h-full flex flex-col items-center justify-center text-center animate-scaleIn">
-                <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mb-6">
-                  <CheckCircle2 size={40} className="text-white" />
-                </div>
-                <h3 className="text-3xl font-heading font-bold mb-4">Request Received</h3>
-                <p className="text-white/60">Our master clothier will reach out to you within 24 hours to schedule your fitting.</p>
-                <button 
-                  onClick={() => setFormSubmitted(false)}
-                  className="mt-8 text-accent font-bold hover:underline"
-                >
-                  Send another message
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Full Name</label>
-                    <input required type="text" className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white focus:border-accent outline-none transition-colors" placeholder="John Doe" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Phone Number</label>
-                    <input required type="tel" className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white focus:border-accent outline-none transition-colors" placeholder="+234..." />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Email Address</label>
-                  <input required type="email" className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white focus:border-accent outline-none transition-colors" placeholder="john@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Interested In</label>
-                  <select className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white focus:border-accent outline-none transition-colors">
-                    <option>Bespoke Three-Piece Suit</option>
-                    <option>Signature Footwear</option>
-                    <option>Wedding Party Collection</option>
-                    <option>Bespoke Accessories</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Message</label>
-                  <textarea rows={4} className="w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-white focus:border-accent outline-none transition-colors" placeholder="Tell us your requirements..."></textarea>
-                </div>
-                <button type="submit" className="w-full bg-accent text-white font-bold py-4 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2">
-                  BOOK MY FITTING <ArrowRight size={18} />
-                </button>
-              </form>
-            )}
-          </div>
+          )}
         </div>
       </section>
 
